@@ -280,6 +280,14 @@ footer .copy{font-size:12px;color:var(--muted);margin-top:8px}
   font-size:14px;color:var(--text);padding:5px 8px 11px;line-height:1.45}
 .ctrlpanel .status .dot{width:8px;height:8px;border-radius:50%;background:var(--brand-pink);flex:0 0 auto;animation:pulse 1.6s infinite}
 .controls{display:flex;flex-wrap:wrap;gap:8px}
+.capture-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0 0 10px}
+.meta-field{display:flex;align-items:center;gap:8px;min-height:46px;border:1px solid var(--line);background:var(--chip);border-radius:12px;padding:0 12px}
+.meta-field span{font-family:var(--disp);font-size:13.5px;white-space:nowrap;color:var(--text)}
+.meta-field input,.meta-field textarea{flex:1 1 auto;min-width:0;border:none;outline:none;background:transparent;color:var(--text);font-family:var(--body);font-size:14px}
+.meta-field input[type="date"]{min-width:132px}
+.meta-field input::placeholder,.meta-field textarea::placeholder{color:var(--muted)}
+.memo-field{display:flex;align-items:flex-start;padding:10px 12px;min-height:74px;grid-column:1 / -1}
+.memo-field textarea{resize:vertical;min-height:52px;line-height:1.45}
 .cbtn{flex:1 1 auto;min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:7px;
   font-family:var(--disp);font-size:14px;border:1px solid var(--line);background:var(--chip);color:var(--text);
   border-radius:12px;padding:0 16px;cursor:pointer;transition:.16s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
@@ -299,6 +307,7 @@ footer .copy{font-size:12px;color:var(--muted);margin-top:8px}
   .hero p{font-size:14px;line-height:1.65}
   #board{aspect-ratio:1100/1180}
   .ctrlpanel .status{font-size:13px;justify-content:center;text-align:center}
+  .capture-meta{grid-template-columns:1fr;gap:6px}
   .cbtn{font-size:13px;padding:0 12px;min-height:48px}
   .cbtn.accent{flex-basis:100%}
   .hintbar{font-size:12.5px}
@@ -357,6 +366,12 @@ footer .copy{font-size:12px;color:var(--muted);margin-top:8px}
   <div class="labwrap">
     <div class="ctrlpanel">
       <div class="status"><span class="dot"></span><span id="progText">처음에는 화석 분포를 흑백으로 숨겼습니다. 해안선을 먼저 맞춰 보세요.</span></div>
+      <div class="capture-meta">
+        <label class="meta-field" for="studentId"><span>학번</span><input id="studentId" type="text" maxlength="10" inputmode="numeric" placeholder="예: 20801"></label>
+        <label class="meta-field" for="studentName"><span>이름</span><input id="studentName" type="text" maxlength="20" placeholder="예: 김지구"></label>
+        <label class="meta-field" for="captureDate"><span>날짜</span><input id="captureDate" type="date"></label>
+        <label class="meta-field memo-field" for="captureMemo"><span>관찰 결과</span><textarea id="captureMemo" maxlength="80" placeholder="예: 남아메리카와 아프리카의 해안선과 화석 띠가 잘 이어졌다."></textarea></label>
+      </div>
       <div class="controls">
         <div class="seg" role="group" aria-label="회전">
           <button class="cbtn" id="rotLBtn" title="선택한 대륙 왼쪽으로 회전" aria-label="왼쪽으로 회전">⟲</button>
@@ -364,6 +379,7 @@ footer .copy{font-size:12px;color:var(--muted);margin-top:8px}
         </div>
         <button class="cbtn" id="fossilBtn" aria-pressed="false"><span class="i">🦴</span><span class="t">화석 분포 켜기</span></button>
         <button class="cbtn" id="resetBtn"><span class="i">↺</span><span class="t">처음 위치</span></button>
+        <button class="cbtn" id="captureBtn"><span class="i">📸</span><span class="t">배치 캡쳐</span></button>
         <button class="cbtn accent" id="explainBtn"><span class="i">📖</span><span class="t">대륙이동의 증거</span></button>
       </div>
     </div>
@@ -661,6 +677,220 @@ fossilBtn.addEventListener('click',()=>{ FX.click(); setFossil(!fossilOn); });
 
 /* 처음 위치로 */
 document.getElementById('resetBtn').addEventListener('click',()=>{ FX.click(); scatter(); });
+
+/* 현재 배치 PNG 캡쳐 */
+const captureBtn=document.getElementById('captureBtn');
+const studentIdInput=document.getElementById('studentId');
+const studentNameInput=document.getElementById('studentName');
+const captureDateInput=document.getElementById('captureDate');
+const captureMemoInput=document.getElementById('captureMemo');
+function todayStr(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+(function initCaptureMeta(){
+  try{
+    const savedId=localStorage.getItem('sss_student_id')||'';
+    const savedName=localStorage.getItem('sss_student_name')||'';
+    const savedDate=localStorage.getItem('sss_capture_date')||todayStr();
+    const savedMemo=localStorage.getItem('sss_capture_memo')||'';
+    studentIdInput.value=savedId;
+    studentNameInput.value=savedName;
+    captureDateInput.value=savedDate;
+    captureMemoInput.value=savedMemo;
+  }catch(e){
+    studentIdInput.value='';
+    studentNameInput.value='';
+    captureDateInput.value=todayStr();
+    captureMemoInput.value='';
+  }
+})();
+studentIdInput.addEventListener('input',()=>{ 
+  studentIdInput.value=studentIdInput.value.replace(/[^0-9]/g,'').slice(0,10);
+  try{localStorage.setItem('sss_student_id',studentIdInput.value.trim());}catch(e){} 
+});
+studentNameInput.addEventListener('input',()=>{ try{localStorage.setItem('sss_student_name',studentNameInput.value.trim());}catch(e){} });
+captureDateInput.addEventListener('input',()=>{ try{localStorage.setItem('sss_capture_date',captureDateInput.value||todayStr());}catch(e){} });
+captureMemoInput.addEventListener('input',()=>{ try{localStorage.setItem('sss_capture_memo',captureMemoInput.value.trim());}catch(e){} });
+function waitImageReady(img){
+  if(img.complete && (img.naturalWidth||img.width)) return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const ok=()=>resolve();
+    const fail=()=>reject(new Error('이미지 로드 실패'));
+    img.addEventListener('load',ok,{once:true});
+    img.addEventListener('error',fail,{once:true});
+  });
+}
+function roundRectPath(ctx,x,y,w,h,r){
+  const rr=Math.min(r,w/2,h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr,y);
+  ctx.arcTo(x+w,y,x+w,y+h,rr);
+  ctx.arcTo(x+w,y+h,x,y+h,rr);
+  ctx.arcTo(x,y+h,x,y,rr);
+  ctx.arcTo(x,y,x+w,y,rr);
+  ctx.closePath();
+}
+function drawCaptureBackground(ctx){
+  const isDark=html.dataset.theme==='dark';
+  roundRectPath(ctx,0,0,BW,BH,22); ctx.clip();
+  if(isDark){
+    const g=ctx.createLinearGradient(0,0,BW,BH);
+    g.addColorStop(0,'#102033'); g.addColorStop(1,'#0a1522');
+    ctx.fillStyle=g; ctx.fillRect(0,0,BW,BH);
+    ctx.fillStyle='rgba(120,170,220,.06)';
+  }else{
+    const g=ctx.createLinearGradient(0,0,BW,BH);
+    g.addColorStop(0,'#ffffff'); g.addColorStop(1,'#eaf6fb');
+    ctx.fillStyle=g; ctx.fillRect(0,0,BW,BH);
+    ctx.fillStyle='rgba(40,110,180,.07)';
+  }
+  for(let x=34;x<BW;x+=35) ctx.fillRect(x,0,1,BH);
+  for(let y=34;y<BH;y+=35) ctx.fillRect(0,y,BW,1);
+}
+function drawCaptureCompass(ctx){
+  const isDark=html.dataset.theme==='dark';
+  const x=BW-60, y=58, r=22;
+  ctx.save();
+  ctx.globalAlpha=.55;
+  ctx.strokeStyle=isDark?'#eaf2f9':'#1a2a3a';
+  ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='#e05a4f';
+  ctx.beginPath(); ctx.moveTo(x,y-r+4); ctx.lineTo(x+6,y); ctx.lineTo(x,y-8); ctx.lineTo(x-6,y); ctx.closePath(); ctx.fill();
+  ctx.fillStyle=isDark?'#eaf2f9':'#1a2a3a';
+  ctx.beginPath(); ctx.moveTo(x,y+r-4); ctx.lineTo(x-6,y); ctx.lineTo(x,y+8); ctx.lineTo(x+6,y); ctx.closePath(); ctx.fill();
+  ctx.font='13px Jua, sans-serif'; ctx.textAlign='center'; ctx.fillText('N',x,y-r-4);
+  ctx.restore();
+}
+function captureMeta(){
+  const id=(studentIdInput.value||'').replace(/[^0-9]/g,'').trim();
+  const name=(studentNameInput.value||'').trim();
+  const date=(captureDateInput.value||todayStr()).trim();
+  const memo=(captureMemoInput.value||'').trim();
+  return {id,name,date,memo};
+}
+function validateCaptureMeta(){
+  const meta=captureMeta();
+  if(!meta.id || !meta.name){
+    progText.textContent='학번과 이름을 모두 입력해야 캡쳐할 수 있습니다.';
+    hintbar.innerHTML='먼저 <b>학번</b>과 <b>이름</b>을 입력한 뒤 <b>배치 캡쳐</b> 버튼을 눌러 주세요.';
+    if(!meta.id){ studentIdInput.focus(); }
+    else { studentNameInput.focus(); }
+    FX.miss();
+    return null;
+  }
+  return meta;
+}
+function safeFilePart(s){
+  return String(s).replace(/[\\/:*?"<>|\s]+/g,'_').replace(/^_+|_+$/g,'').slice(0,24)||'학생';
+}
+function drawCaptureMetaBox(ctx,meta){
+  const isDark=html.dataset.theme==='dark';
+  const x=18, y=18, w=330, h=88, r=14;
+  ctx.save();
+  roundRectPath(ctx,x,y,w,h,r);
+  ctx.fillStyle=isDark?'rgba(12,22,36,.76)':'rgba(255,255,255,.92)';
+  ctx.fill();
+  ctx.strokeStyle=isDark?'rgba(255,255,255,.16)':'rgba(20,50,80,.12)';
+  ctx.lineWidth=1;
+  ctx.stroke();
+  ctx.fillStyle=isDark?'#eaf2f9':'#1a2a3a';
+  ctx.font='15px Jua, sans-serif';
+  ctx.fillText('대륙 퍼즐 배치 기록',x+14,y+22);
+  ctx.font='14px Gowun Dodum, sans-serif';
+  ctx.fillText(`학번: ${meta.id}`,x+14,y+46);
+  ctx.fillText(`이름: ${meta.name}`,x+160,y+46);
+  ctx.fillText(`날짜: ${meta.date}`,x+14,y+70);
+  ctx.restore();
+}
+function drawCaptureMemoBox(ctx,meta){
+  const isDark=html.dataset.theme==='dark';
+  const text=meta.memo || '관찰 결과: '; 
+  const x=18, y=BH-88, w=BW-36, h=58, r=14;
+  ctx.save();
+  roundRectPath(ctx,x,y,w,h,r);
+  ctx.fillStyle=isDark?'rgba(12,22,36,.72)':'rgba(255,255,255,.92)';
+  ctx.fill();
+  ctx.strokeStyle=isDark?'rgba(255,255,255,.16)':'rgba(20,50,80,.12)';
+  ctx.lineWidth=1;
+  ctx.stroke();
+  ctx.fillStyle=isDark?'#eaf2f9':'#1a2a3a';
+  ctx.font='14px Jua, sans-serif';
+  ctx.fillText('관찰 결과 한줄 메모',x+14,y+20);
+  ctx.font='13.5px Gowun Dodum, sans-serif';
+  const label='메모: ';
+  const maxWidth=w-28;
+  let memoLine=label + (meta.memo || '');
+  while(ctx.measureText(memoLine).width>maxWidth && memoLine.length>0) memoLine=memoLine.slice(0,-1);
+  if(meta.memo && memoLine.length < (label + meta.memo).length) memoLine=memoLine.slice(0,-1) + '…';
+  if(!meta.memo) memoLine='메모: ';
+  ctx.fillText(memoLine,x+14,y+44);
+  ctx.restore();
+}
+async function captureBoardPNG(){
+  const meta=validateCaptureMeta();
+  if(!meta) return;
+  const label=captureBtn.querySelector('.t');
+  const prev=label?label.textContent:'';
+  captureBtn.disabled=true;
+  if(label) label.textContent='캡쳐 중...';
+  try{
+    await Promise.all(CONT.map(c=>waitImageReady(c._img)));
+    const scale=2;
+    const canvas=document.createElement('canvas');
+    canvas.width=BW*scale; canvas.height=BH*scale;
+    const ctx=canvas.getContext('2d');
+    ctx.scale(scale,scale);
+
+    drawCaptureBackground(ctx);
+    drawCaptureCompass(ctx);
+    drawCaptureMetaBox(ctx,meta);
+    drawCaptureMemoBox(ctx,meta);
+
+    const ordered=[...CONT].sort((a,b)=>(parseInt(a._p.style.zIndex)||5)-(parseInt(b._p.style.zIndex)||5));
+    for(const c of ordered){
+      const img=c._img;
+      const nw=img.naturalWidth||img.width||1;
+      const nh=img.naturalHeight||img.height||1;
+      const w=c.w;
+      const h=w*nh/nw;
+      ctx.save();
+      ctx.translate(c.x,c.y);
+      ctx.rotate((c.rot||0)*Math.PI/180);
+      if(!fossilOn) ctx.filter='grayscale(1) contrast(0.96) brightness(1.08)';
+      ctx.drawImage(img,-w/2,-h/2,w,h);
+      ctx.restore();
+      ctx.filter='none';
+    }
+
+    ctx.save();
+    ctx.globalAlpha=.34;
+    ctx.fillStyle=html.dataset.theme==='dark' ? '#eaf2f9' : '#1a2a3a';
+    ctx.font='16px Jua, sans-serif';
+    ctx.fillText('© 송쌤과학',16,BH-16);
+    ctx.restore();
+
+    const now=new Date();
+    const stamp=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('')+'_'+[String(now.getHours()).padStart(2,'0'),String(now.getMinutes()).padStart(2,'0'),String(now.getSeconds()).padStart(2,'0')].join('');
+    const a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png');
+    a.download=`송쌤과학_대륙퍼즐_${safeFilePart(meta.id)}_${safeFilePart(meta.name)}_${meta.date.replace(/-/g,'')}_${stamp}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+    progText.textContent='학번, 이름, 날짜, 관찰 결과가 들어간 PNG를 저장했습니다. 다운로드 폴더를 확인하세요.';
+    hintbar.innerHTML='완성된 대륙 배치를 다시 저장하려면 <b>배치 캡쳐</b> 버튼을 누르세요.';
+    FX.reveal();
+  }catch(err){
+    console.error(err);
+    progText.textContent='캡쳐에 실패했습니다. 잠시 후 다시 시도하세요.';
+    hintbar.innerHTML='이미지가 모두 로드된 뒤 다시 <b>배치 캡쳐</b> 버튼을 눌러 보세요.';
+    FX.miss();
+  }finally{
+    captureBtn.disabled=false;
+    if(label) label.textContent=prev||'배치 캡쳐';
+  }
+}
+captureBtn.addEventListener('click',()=>{ FX.click(); captureBoardPNG(); });
 
 /* 설명(화석 카드 + 베게너 결론) — 원할 때만 열기 */
 function buildCards(){
